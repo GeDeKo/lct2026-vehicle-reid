@@ -20,3 +20,6 @@ weights/
 
 # ноутбуки: чекпоинты
 .ipynb_checkpoints/
+
+# черновая сборка презентации — не коммитим, только presentation/*.pptx
+pptx_work/

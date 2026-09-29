@@ -33,6 +33,8 @@ export default function App() {
 
   useEffect(() => {
     refreshHealth();
+    const id = setInterval(refreshHealth, 8000);
+    return () => clearInterval(id);
   }, []);
 
   function handleFile(next: File) {
