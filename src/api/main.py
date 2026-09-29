@@ -17,8 +17,6 @@ from src.config import ROOT, config
 from src.pipeline import VehiclePipeline
 from src.search.index import VehicleIndex
 
-WEB_DIR = ROOT / "web"
-
 app = FastAPI(title="Vehicle Re-ID", description="Идентификация машин без опоры на госномер")
 
 app.add_middleware(
@@ -67,15 +65,6 @@ class IdentifyResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok", "index_size": len(pipeline.index._records) if pipeline.index else 0}
-
-
-@app.get("/")
-def web_index():
-    """Отдаём фронтенд (web/index.html) с того же порта, что и API — без
-    отдельного сервера и без CORS-возни при демо."""
-    from fastapi.responses import FileResponse
-
-    return FileResponse(str(WEB_DIR / "index.html"))
 
 
 @app.post("/identify", response_model=IdentifyResponse)
