@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.config import config
+from src.config import ROOT, config
 from src.pipeline import VehiclePipeline
 from src.search.index import VehicleIndex
 
@@ -45,10 +45,14 @@ def main():
         print(f"В {args.images_dir} не найдено файлов по маске {args.pattern}")
         return
 
+    crops_dir = Path(config.index.index_path).parent / "crops"
     for i, image_path in enumerate(images, 1):
         camera_id, timestamp = parse_filename(image_path)
+        crop_path = crops_dir / f"{camera_id}_{i}.jpg"
         try:
-            pipeline.enroll(image_path, camera_id=camera_id, timestamp=timestamp)
+            record = pipeline.enroll(image_path, camera_id=camera_id, timestamp=timestamp,
+                                      save_crop_to=crop_path)
+            record.image_path = str(crop_path.relative_to(ROOT))
         except ValueError as e:
             print(f"[{image_path.name}] пропущено: {e}")
             continue
