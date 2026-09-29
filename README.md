@@ -25,8 +25,8 @@ mAP 0.759, Rank-1 0.793, Rank-5 0.915.**
 git clone https://github.com/GeDeKo/lct2026-vehicle-reid.git
 cd lct2026-vehicle-reid
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements.txt
 
 ./scripts/download_release_assets.sh   # обученный чекпоинт + демо-индекс из GitHub Release
 uvicorn src.api.main:app --host 0.0.0.0 --port 8800

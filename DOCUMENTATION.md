@@ -164,8 +164,10 @@ git clone https://github.com/GeDeKo/lct2026-vehicle-reid.git
 cd lct2026-vehicle-reid
 
 python3 -m venv .venv && source .venv/bin/activate
+# сначала torch под CUDA (или cpu-сборка) — иначе requirements.txt ниже
+# подтянет torch с обычного PyPI и поставит не тот билд
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121  # или cpu-сборка
 
 ./scripts/download_release_assets.sh   # чекпоинт + демо-индекс из Release
 
