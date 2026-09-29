@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vehicle Re-ID</title>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #14171c;
+    --panel-2: #1b1f26;
+    --border: #262b33;
+    --text: #e8eaed;
+    --muted: #8b93a1;
+    --accent: #4f8cff;
+    --accent-dim: #2c4a8a;
+    --good: #3ecf8e;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 17px; font-weight: 600; margin: 0; }
+  header .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+  }
+  header .status-dot.ok { background: var(--good); }
+  header .status-text { font-size: 13px; color: var(--muted); }
+
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+    display: grid;
+    gap: 24px;
+  }
+
+  .dropzone {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    background: var(--panel);
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--panel-2); }
+  .dropzone p { margin: 4px 0; color: var(--muted); font-size: 14px; }
+  .dropzone .big { color: var(--text); font-size: 15px; font-weight: 500; }
+  .dropzone input { display: none; }
+
+  .preview-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .preview-thumb {
+    width: 180px; height: 135px;
+    border-radius: var(--radius);
+    object-fit: cover;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 14px; }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px;
+  }
+  .attr { }
+  .attr .label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+  .attr .value { font-size: 15px; font-weight: 500; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chip {
+    font-size: 12px; padding: 3px 9px; border-radius: 999px;
+    background: var(--accent-dim); color: #cfe0ff;
+  }
+
+  .enroll-row {
+    display: flex; gap: 10px; align-items: center; margin-top: 10px;
+  }
+  .enroll-row input {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; flex: 1;
+  }
+  button {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: opacity .15s;
+  }
+  button:hover { opacity: .9; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.secondary { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); }
+
+  .matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+  }
+  .match-card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .match-card img { width: 100%; height: 110px; object-fit: cover; display: block; background: #000; }
+  .match-meta { padding: 8px 10px; }
+  .match-score { font-size: 13px; font-weight: 600; color: var(--good); }
+  .match-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .empty-state { color: var(--muted); font-size: 13px; text-align: center; padding: 24px; }
+  .error-banner {
+    background: #3a1c1c; border: 1px solid #6b2a2a; color: #ffb3b3;
+    border-radius: 10px; padding: 12px 16px; font-size: 13px;
+  }
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+    animation: spin .7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Vehicle Re-ID</h1>
+  <span class="status-dot" id="statusDot"></span>
+  <span class="status-text" id="statusText">проверяю API…</span>
+</header>
+
+<main>
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="fileInput" accept="image/*" />
+    <p class="big">Перетащите фото машины или нажмите, чтобы выбрать</p>
+    <p>JPG / PNG — снимок с камеры или объявления</p>
+  </div>
+
+  <div id="previewSection" class="card hidden">
+    <h2>Кадр</h2>
+    <div class="preview-row">
+      <img id="previewImg" class="preview-thumb" />
+      <div style="flex:1">
+        <div class="enroll-row">
+          <button id="identifyBtn">Найти похожие</button>
+          <input id="cameraIdInput" placeholder="camera_id (для добавления в базу)" />
+          <button id="enrollBtn" class="secondary">Добавить в базу</button>
+        </div>
+        <div id="enrollResult" class="match-sub" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="errorBanner" class="error-banner hidden"></div>
+
+  <div id="profileCard" class="card hidden">
+    <h2>Цифровой профиль</h2>
+    <div class="profile-grid" id="profileGrid"></div>
+  </div>
+
+  <div id="matchesCard" class="card hidden">
+    <h2>Похожие машины</h2>
+    <div class="matches-grid" id="matchesGrid"></div>
+  </div>
+</main>
+
+<script>
+// Сайт открывается локально (просто файл/статика), а API крутится на A100.
+// По умолчанию ждём проброшенный порт (ssh -L 8800:localhost:8800 ...) —
+// см. web/README.md. Можно переопределить через ?api=http://host:port
+const API_BASE = new URLSearchParams(location.search).get("api") || "http://localhost:8800";
+
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+const previewSection = document.getElementById("previewSection");
+const previewImg = document.getElementById("previewImg");
+const identifyBtn = document.getElementById("identifyBtn");
+const enrollBtn = document.getElementById("enrollBtn");
+const cameraIdInput = document.getElementById("cameraIdInput");
+const enrollResult = document.getElementById("enrollResult");
+const errorBanner = document.getElementById("errorBanner");
+const profileCard = document.getElementById("profileCard");
+const profileGrid = document.getElementById("profileGrid");
+const matchesCard = document.getElementById("matchesCard");
+const matchesGrid = document.getElementById("matchesGrid");
+const statusDot = document.getElementById("statusDot");
+const statusText = document.getElementById("statusText");
+
+let currentFile = null;
+
+async function checkHealth() {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    const data = await res.json();
+    statusDot.classList.add("ok");
+    statusText.textContent = `API работает · в базе ${data.index_size ?? 0} записей`;
+  } catch (e) {
+    statusText.textContent = "API недоступен";
+  }
+}
+checkHealth();
+
+dropzone.addEventListener("click", () => fileInput.click());
+dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("drag"); });
+dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("drag");
+  if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length) setFile(fileInput.files[0]);
+});
+
+function setFile(file) {
+  currentFile = file;
+  previewImg.src = URL.createObjectURL(file);
+  previewSection.classList.remove("hidden");
+  hideError();
+  profileCard.classList.add("hidden");
+  matchesCard.classList.add("hidden");
+  enrollResult.textContent = "";
+}
+
+function hideError() { errorBanner.classList.add("hidden"); errorBanner.textContent = ""; }
+function showError(msg) { errorBanner.textContent = msg; errorBanner.classList.remove("hidden"); }
+
+function setBusy(btn, busy, label) {
+  btn.disabled = busy;
+  btn.innerHTML = busy ? `<span class="spinner"></span>${label}` : label;
+}
+
+identifyBtn.addEventListener("click", async () => {
+  if (!currentFile) return;
+  hideError();
+  setBusy(identifyBtn, true, "Ищу…");
+  profileCard.classList.add("hidden");
+  matchesCard.classList.add("hidden");
+
+  try {
+    const form = new FormData();
+    form.append("file", currentFile);
+    const res = await fetch(`${API_BASE}/identify`, { method: "POST", body: form });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Ошибка ${res.status}`);
+    }
+    const data = await res.json();
+    renderProfile(data.profile);
+    renderMatches(data.matches);
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    setBusy(identifyBtn, false, "Найти похожие");
+  }
+});
+
+enrollBtn.addEventListener("click", async () => {
+  if (!currentFile) return;
+  hideError();
+  setBusy(enrollBtn, true, "Добавляю…");
+  try {
+    const form = new FormData();
+    form.append("file", currentFile);
+    const cameraId = cameraIdInput.value.trim() || "unknown";
+    const res = await fetch(`${API_BASE}/enroll?camera_id=${encodeURIComponent(cameraId)}`, {
+      method: "POST", body: form,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Ошибка ${res.status}`);
+    }
+    const data = await res.json();
+    enrollResult.textContent = `Добавлено в базу, record_id=${data.record_id}`;
+    checkHealth();
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    setBusy(enrollBtn, false, "Добавить в базу");
+  }
+});
+
+function renderProfile(profile) {
+  profileGrid.innerHTML = "";
+  const fields = [
+    ["Марка", profile.brand],
+    ["Модель", profile.model],
+    ["Цвет", profile.color],
+    ["Кузов", profile.body_type],
+  ];
+  for (const [label, value] of fields) {
+    const div = document.createElement("div");
+    div.className = "attr";
+    div.innerHTML = `<div class="label">${label}</div><div class="value">${value ?? "—"}</div>`;
+    profileGrid.appendChild(div);
+  }
+  if (profile.features && profile.features.length) {
+    const div = document.createElement("div");
+    div.className = "attr";
+    div.style.gridColumn = "1 / -1";
+    const chips = profile.features.map(f => `<span class="chip">${f}</span>`).join("");
+    div.innerHTML = `<div class="label">Особенности</div><div class="chips">${chips}</div>`;
+    profileGrid.appendChild(div);
+  }
+  profileCard.classList.remove("hidden");
+}
+
+function renderMatches(matches) {
+  matchesGrid.innerHTML = "";
+  if (!matches || matches.length === 0) {
+    matchesGrid.innerHTML = `<div class="empty-state">Совпадений не найдено — база пуста или машина уникальна</div>`;
+  } else {
+    for (const m of matches) {
+      const card = document.createElement("div");
+      card.className = "match-card";
+      const imgSrc = m.image_path ? `${API_BASE}/${m.image_path}` : "";
+      card.innerHTML = `
+        ${imgSrc ? `<img src="${imgSrc}" loading="lazy" />` : ""}
+        <div class="match-meta">
+          <div class="match-score">${(m.score * 100).toFixed(1)}%</div>
+          <div class="match-sub">камера: ${m.camera_id}</div>
+          <div class="match-sub">${new Date(m.timestamp).toLocaleString("ru-RU")}</div>
+        </div>`;
+      matchesGrid.appendChild(card);
+    }
+  }
+  matchesCard.classList.remove("hidden");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.DS_Store
+
+# датасеты и веса — тяжёлые, не в git
+data/raw/*
+data/processed/*
+data/index/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/index/.gitkeep
+*.pt
+*.pth
+*.onnx
+*.engine
+weights/
+
+# ноутбуки: чекпоинты
+.ipynb_checkpoints/

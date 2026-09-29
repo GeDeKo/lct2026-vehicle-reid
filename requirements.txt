@@ -1,0 +1,23 @@
+# --- API / сервис (лёгкие, ставятся локально без GPU) ---
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.8
+python-multipart>=0.0.9
+pillow>=10.4
+numpy>=1.26
+pyyaml>=6.0
+
+# --- ML / CV (тяжёлые, ставить на сервере с A100) ---
+torch>=2.3
+torchvision>=0.18
+ultralytics>=8.3          # YOLO детектор
+transformers>=4.44        # DINOv2 / прочие бэкбоны
+open_clip_torch>=2.26     # CLIP эмбеддинги и zero-shot атрибуты
+faiss-cpu>=1.8            # на сервере с GPU можно заменить на faiss-gpu
+scikit-learn>=1.5         # метрики (mAP, CMC)
+tqdm>=4.66
+
+# --- Парсинг датасета ---
+requests>=2.32
+beautifulsoup4>=4.12
+lxml>=5.2
